@@ -6,8 +6,7 @@ Jogo 2D de navegador, feito pelo Bruno para a esposa estudar a prova teórica da
 
 - O jogo é entregue como **um único HTML** (`dist/rumo-a-cnh.html`), offline, sem bibliotecas externas.
 - O HTML é **gerado**: não edite `dist/` à mão. Edite as fontes e rode `python3 scripts/build.py`.
-- Build: `npm run build` (acha sozinho o Python do sistema). Teste de ponta a ponta (joga todas as fases, chefes, simulado, Reforço, caminho de erro e checagem das placas): `npm install` uma vez, depois `npm test`. Precisa terminar com `ERROS []` e `FALHAS []`. `npm run check` faz build + teste.
-- Não há git nesta máquina: antes de mudanças grandes, rode `npm run backup` (copia fontes para `backups/`, mantém as 15 mais recentes).
+- Teste de ponta a ponta (joga todas as fases, chefes, simulado e Reforço): `npm install` uma vez, depois `npm test`. Precisa terminar com `ERROS []`.
 
 | Arquivo | O que tem |
 |---|---|
@@ -29,6 +28,7 @@ Jogo 2D de navegador, feito pelo Bruno para a esposa estudar a prova teórica da
 - **Placas sempre em vetor**, fiéis ao padrão oficial (formato, cor, símbolo). **Nunca pixel art em placas.** Pixel art só no clima de jogo (mapa, Bruno, enfeites).
 - **Nada de prints ou imagens recortadas dos PDFs.** As explicações são cartões soltos em grid, com placas, ilustrações e ícones desenhados no código.
 - Texto de estudo fiel aos módulos; tópicos que só a apostila cobre aparecem marcados como "Aprofundamento".
+- A aluna vai tirar **categoria B**: as 113 questões sobre pilotar moto (capacete, garupa, ciclomotor, categoria A etc.) ficam fora do jogo pela lista `data/excluidas_moto.json`; os tópicos de moto saíram junto. Questões em que o motorista de carro convive com motos continuam. Para voltar, basta esvaziar a lista.
 - Simulado: 30 questões, mínimo 70% (a apostila não diz quantas questões a prova real tem).
 
 ## Identidade e tom

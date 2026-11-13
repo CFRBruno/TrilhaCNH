@@ -9,10 +9,13 @@ const DIF=['Fácil','Intermediária','Difícil'];
 
 /* ================= ESTADO SALVO ================= */
 const KEY='rumo_a_cnh_v1';
-function blank(){return {v:1,tut:false,mute:false,sess:0,au:{},ch:{},sim:{best:null,tries:0},qs:{},nb:{},run:null,sel:0,bk:0,tema:'rosa'};}
+function blank(){return {v:1,tut:false,mute:false,sess:0,au:{},ch:{},sim:{best:null,tries:0},qs:{},nb:{},run:null,sel:0};}
 let S=load();
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.v===1)return Object.assign(blank(),x);}catch(e){}return blank();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+// limpa referências a questões que saíram do jogo (ex.: questões de moto)
+Object.keys(S.nb).forEach(id=>{if(!Q[id])delete S.nb[id];});
+if(S.run&&S.run.queue&&S.run.queue.some(id=>!Q[id]))S.run=null;
 const au=n=>S.au[n]||(S.au[n]={st:false,ok:false,stars:0});
 const ch=m=>S.ch[m]||(S.ch[m]={done:false,selo:false,best:0});
 
@@ -51,25 +54,24 @@ function guideHTML(msg){return `<div class="guide"><div class="por"><canvas clas
 let sayTimer=null;
 function talk(){
   document.querySelectorAll('canvas[data-bruno]').forEach(c=>drawBruno(c,false));
-  const ovb=$('ovbox'),root=(ovb&&$('ov').classList.contains('on')&&ovb.querySelector('[data-say]'))?ovb:document;
-  const el=root.querySelector('[data-say]');if(!el)return;const txt=el.dataset.say;clearInterval(sayTimer);
+  const el=document.querySelector('[data-say]');if(!el)return;const txt=el.dataset.say;clearInterval(sayTimer);
   if(reduce){el.textContent=txt;return;}
-  let i=0;const cv=root.querySelector('canvas[data-bruno]');
+  let i=0;const cv=document.querySelector('canvas[data-bruno]');
   sayTimer=setInterval(()=>{if(!el.isConnected){clearInterval(sayTimer);return;}
     i++;el.textContent=txt.slice(0,i);const ch=txt[i-1];
     if(ch&&/[A-Za-zÀ-ú0-9]/.test(ch)&&i%2===0)SFX.blip();
     if(cv&&i%6===0)drawBruno(cv,(i/6)%2===1);
     if(i>=txt.length){clearInterval(sayTimer);if(cv)drawBruno(cv,false);}},28);
 }
-function skipSay(){const ovb=$('ovbox'),root=(ovb&&$('ov').classList.contains('on')&&ovb.querySelector('[data-say]'))?ovb:document;const el=root.querySelector('[data-say]');if(el){clearInterval(sayTimer);el.textContent=el.dataset.say;}}
+function skipSay(){const el=document.querySelector('[data-say]');if(el){clearInterval(sayTimer);el.textContent=el.dataset.say;}}
 
 /* ================= FALAS DO BRUNO ================= */
 const hour=new Date().getHours();
 const OI=hour<12?'Bom dia, meu amor!':hour<18?'Boa tarde, meu amor!':'Boa noite, meu amor!';
 const F={
- titulo:[`${OI} Bora estudar mais um pouquinho pra essa CNH?`,`${OI} Bora que essa CNH não vai sair sozinha!`],
- tut:['Oi, amor! Aqui, além de marido, sou seu instrutor particular. Vou estar do seu lado até o dia da prova.',
-   'Esse é o nosso bairro! O caminho sai lá de casa, passa em Val, na frente do Tchuras e termina no Quintas.',
+ titulo:[`${OI} Bora estudar mais um pouquinho pra essa CNH?`,`${OI} Eu sabia que você ia voltar. Vamos juntos?`],
+ tut:['Oi, amor! Eu sou o Bruno, seu instrutor particular. E marido, né? Vou estar do seu lado até o dia da prova.',
+   'Esse é o nosso bairro! O caminho sai lá de casa, passa no Val e no Tchuras, sobe a Jayme Sapolnik e termina no Quintas.',
    'Cada parada é uma fase: primeiro a gente estuda uns cartões, depois vem o Desafio com as perguntas oficiais. Sem relógio e sem game over: errou, eu te explico e a pergunta volta depois.',
    'Cada região tem um chefe e, no Quintas, o simulado final. Se quiser revisar o que errou, é só abrir o Reforço. Te amo, vamos nessa!'],
  aula:{1:'Começando pelas placas, amor: elas conversam com a gente na rua o tempo todo.',2:'Agora o chão, as luzes e os ajudantes da sinalização. Repara que você já vê tudo isso todo dia!',
@@ -93,20 +95,18 @@ const F={
 
 /* ================= MAPA DO BAIRRO (pixel art, 480×270) ================= */
 const NODES=[ // tipo, número, x, y (coordenadas do canvas do mapa)
- {k:'f',n:1,x:420,y:122},{k:'f',n:2,x:428,y:160},{k:'c',n:1,x:360,y:190},
- {k:'f',n:3,x:305,y:200},{k:'f',n:4,x:258,y:213},{k:'c',n:2,x:196,y:231},
+ {k:'f',n:1,x:392,y:176},{k:'f',n:2,x:354,y:146},{k:'c',n:1,x:378,y:240},
+ {k:'f',n:3,x:330,y:214},{k:'f',n:4,x:262,y:225},{k:'c',n:2,x:196,y:231},
  {k:'f',n:5,x:172,y:190},{k:'f',n:6,x:172,y:140},{k:'c',n:3,x:172,y:96},
  {k:'f',n:7,x:240,y:70},{k:'f',n:8,x:318,y:70},{k:'c',n:4,x:388,y:61},{k:'s',n:0,x:96,y:69}];
 const BOSS=['Val','Tchuras','Subida da Jayme','Retorno da Araras'];
 const BOSSDESC=['O mercadinho de frente pra casa','A barraquinha do churrasco com os amigos','O topo da Jayme Sapolnik','O retorno da Rua das Araras'];
 function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const ROADS={
- jayme:[[480,178],[440,184],[408,187],[375,189],[340,192],[290,201],[240,218],[200,231],[182,224],[172,208],[172,66]],
- jl:[[385,96],[352,128],[322,160],[300,188],[290,201]], /* ramo esquerdo do balão: diagonal da Casa */
- jr:[[385,96],[404,104],[418,118],[426,138],[428,158],[422,176],[408,187]], /* ramo direito: a curva do balão */
- jn:[[385,96],[385,70]],
+ jayme:[[480,196],[430,200],[330,214],[240,228],[200,231],[182,224],[172,208],[172,66]],
  arN:[[0,52],[384,52]],arS:[[0,70],[384,70]],
- m1:[[172,150],[110,158],[40,166]],m4:[[60,70],[60,140],[110,158]],
+ colibris:[[420,197],[360,150],[312,112],[300,70]],
+ m1:[[172,150],[110,158],[40,166]],m2:[[262,70],[262,150],[290,190]],m3:[[330,70],[340,130],[360,150]],m4:[[60,70],[60,140],[110,158]],
 };
 function drawMap(cv){
   const W=480,H=270;cv.width=W;cv.height=H;const c=cv.getContext('2d');const R=rng(21);
@@ -116,7 +116,7 @@ function drawMap(cv){
   for(let y=0;y<H;y++){const x=458+Math.round(Math.sin(y/14)*4);f(x,y,12,1,'#BFE3F2');if(y%9===0)f(x+3,y,3,1,'#E8F7FD');}
   const sample=pts=>{const out=[];for(let i=0;i<pts.length-1;i++){const[a,b]=[pts[i],pts[i+1]],n=Math.max(Math.abs(b[0]-a[0]),Math.abs(b[1]-a[1]));for(let s=0;s<=n;s++)out.push([a[0]+(b[0]-a[0])*s/n,a[1]+(b[1]-a[1])*s/n]);}return out;};
   const all=[];Object.values(ROADS).forEach(p=>all.push(...sample(p)));
-  const keep=[[250,92,72,56],[322,212,72,56],[60,74,72,58]]; // áreas dos desenhos
+  const keep=[[392,138,72,60],[392,204,72,60],[60,74,72,58]]; // áreas dos desenhos
   const free=(x,y,w,h,m)=>{if(x<2||y<2||x+w>454||y+h>H-2)return false;for(const k of keep)if(x<k[0]+k[2]+3&&x+w>k[0]-3&&y<k[1]+k[3]+3&&y+h>k[1]-3)return false;
     for(const p of all)if(p[0]>x-m&&p[0]<x+w+m&&p[1]>y-m&&p[1]<y+h+m)return false;return true;};
   // canteiro entre as pistas da Rua das Araras
@@ -129,14 +129,15 @@ function drawMap(cv){
   // ruas
   const draw=(pts,w,col,edge,dash)=>{const s=sample(pts);if(edge)s.forEach(p=>f(p[0]-w/2-1,p[1]-w/2-1,w+2,w+2,edge));s.forEach(p=>f(p[0]-w/2,p[1]-w/2,w,w,col));
     if(dash)s.forEach((p,i)=>{if(Math.floor(i/4)%2===0)f(p[0],p[1],1,1,dash);});};
-  ['m1','m4'].forEach(k=>draw(ROADS[k],5,'#FFFFFF','#E2CBD6'));
+  ['m1','m2','m3','m4'].forEach(k=>draw(ROADS[k],5,'#FFFFFF','#E2CBD6'));
+  draw(ROADS.colibris,6,'#FFFFFF','#D6B9C6');
   draw(ROADS.arN,10,'#F4ECEF','#C9AABA','#F2A7B8');draw(ROADS.arS,10,'#F4ECEF','#C9AABA','#F2A7B8');
   // retorno da Rua das Araras
   for(let a=-Math.PI/2;a<=Math.PI/2;a+=.03){const x=384+Math.cos(a)*9,y=61+Math.sin(a)*9;f(x-6,y-6,12,12,'#C9AABA');}
   for(let a=-Math.PI/2;a<=Math.PI/2;a+=.03){const x=384+Math.cos(a)*9,y=61+Math.sin(a)*9;f(x-5,y-5,10,10,'#F4ECEF');}
-  ['jn','jl','jr','jayme'].forEach(k=>draw(ROADS[k],11,'#F4ECEF','#C9AABA','#F2A7B8'));
+  draw(ROADS.jayme,11,'#F4ECEF','#C9AABA','#F2A7B8');
   // lugares de vocês
-  drawScene(c,'casa',250,92,1,true);drawScene(c,'val',322,212,1,true);drawScene(c,'quintas',60,75,1,true);
+  drawScene(c,'casa',392,140,1,true);drawScene(c,'val',392,206,1,true);drawScene(c,'quintas',60,75,1,true);
   // corações espalhados
   [[30,30],[140,200],[300,250],[430,110],[240,120],[20,220]].forEach(([x,y])=>{if(!free(x,y,7,6,2))return;
     HEART.forEach((r,j)=>[...r].forEach((ch,i)=>{if(ch!=='.')f(x+i,y+j,1,1,ch==='w'?'#FFFFFF':'#E8577D');}));});
@@ -171,9 +172,7 @@ function hud(){
    <button class="btn sm" data-act="mute" aria-pressed="${!S.mute}" aria-label="${S.mute?'Ligar o som':'Desligar o som'}" title="${S.mute?'Som desligado':'Som ligado'}" style="width:46px;padding:0;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/>${S.mute?'<path d="m16 9 5 6M21 9l-5 6"/>':'<path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'}</svg></button>
    <button class="btn sm" data-act="opcoes">Opções</button>`;
 }
-const TEMAS=[['rosa','Rosa'],['lilas','Lilás'],['menta','Menta'],['escuro','Escuro']];
-function aplicaTema(){document.body.dataset.tema=TEMAS.some(t=>t[0]===S.tema)?S.tema:'rosa';}
-function show(html){aplicaTema();$('screen').innerHTML=html;window.scrollTo(0,0);hud();talk();}
+function show(html){$('screen').innerHTML=html;window.scrollTo(0,0);hud();talk();}
 
 /* ================= TELA INICIAL (cena animada) ================= */
 let anim=null;
@@ -184,8 +183,7 @@ function scrTitle(){
     ${guideHTML(pick(F.titulo))}
     <div class="row" style="justify-content:center;margin-top:10px"><button class="btn go" data-act="map">${started?'Continuar a jornada':'Começar a jornada'}</button>
     ${started?'<button class="btn soft2" data-act="reforco">Fazer um Reforço</button>':''}</div>
-    ${started&&Date.now()-S.bk>7*864e5?'<p class="small" id="bkNudge">Faz mais de uma semana desde o último backup. <button class="btn sm soft2" data-act="opcoes">Fazer backup</button></p>':''}
-    <p class="small">Feito com carinho pelo seu amor, vamos tirar essa CNH juntinhos.</p></div>`);
+    <p class="small">Feito com carinho pelo Bruno, com o conteúdo oficial do curso CNH do Brasil.</p></div>`);
   const cv=$('tscene');cv.width=320;cv.height=150;const c=cv.getContext('2d');const t0=performance.now();
   const clouds=[[20,18],[140,30],[250,12]];
   cancelAnimationFrame(anim);
@@ -209,17 +207,17 @@ function scrTitle(){
 function scrMap(){
   const nx=nextNode();
   const pc=(x,y)=>`left:${(x/4.8).toFixed(2)}%;top:${(y/2.7).toFixed(2)}%`;
-  const labels=[[412,28,'Região 1<br>'+D.mods[0].nome],[90,250,'Região 2<br>'+D.mods[1].nome],[104,190,'Região 3<br>'+D.mods[2].nome],[240,28,'Região 4<br>'+D.mods[3].nome]]
+  const labels=[[422,100,'Região 1<br>'+D.mods[0].nome],[262,252,'Região 2<br>'+D.mods[1].nome],[104,190,'Região 3<br>'+D.mods[2].nome],[262,30,'Região 4<br>'+D.mods[3].nome]]
     .map(([x,y,t])=>`<div class="rlabel" style="${pc(x,y)}">${t}</div>`).join('');
-  const streets=[[330,150,'R. Jayme Sapolnik',-47],[150,120,'R. Jayme Sapolnik',-90],[200,61,'Rua das Araras',0]]
+  const streets=[[300,236,'R. Jayme Sapolnik',-8],[150,120,'R. Jayme Sapolnik',-90],[200,61,'Rua das Araras',0],[318,104,'Tv. dos Colibris',38]]
     .map(([x,y,t,r])=>`<div class="slabel" style="${pc(x,y)};transform:translate(-50%,-50%) rotate(${r}deg)">${t}</div>`).join('');
-  const places=[[214,118,'Casa'],[420,252,'Val'],[96,138,'Quintas'],[196,252,'Tchuras']].map(([x,y,t])=>`<div class="plabel" style="${pc(x,y)}">${t}</div>`).join('');
+  const places=[[452,134,'Casa'],[452,266,'Val'],[96,138,'Quintas'],[196,252,'Tchuras']].map(([x,y,t])=>`<div class="plabel" style="${pc(x,y)}">${t}</div>`).join('');
   const bowSvg='<svg viewBox="0 0 14 9" shape-rendering="crispEdges" aria-hidden="true"><path d="M0 1h2v1h2v1h2v3H4v1H2v1H0zM14 1h-2v1h-2v1H8v3h2v1h2v1h2z" fill="#E58FA8"/><path d="M6 3h2v3H6z" fill="#B3264A"/></svg>';
   const ringSvg='<svg viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><path d="M3 0h1v2h3v1H6v1H5v1h1v2H5V6H2v1H1V5h1V4H1V3H0V2h3z" fill="#8E6CC8"/></svg>';
   const nodes=NODES.map((n,i)=>{const open=nodeOpen(i),done=nodeDone(i);
     const cls=['node',n.k==='c'?'boss':n.k==='s'?'final':'',done?'done':'',open?'':'locked',i===nx&&open&&!done?'cur':'',S.sel===i?'sel':''].join(' ');
     const lab=n.k==='f'?n.n:n.k==='c'?bowSvg:ringSvg;
-    const st=n.k==='f'&&au(n.n).stars?`<span class="st">${'<img src="'+HEART_ON+'" alt="">'.repeat(au(n.n).stars)}</span>`:n.k==='c'&&ch(n.n).selo?`<span class="st"><img src="${BROOCH}" alt=""></span>`:'';
+    const st=n.k==='f'&&au(n.n).stars?`<span class="st">${(`<img src="${HEART_ON}" alt="">`).repeat(au(n.n).stars)}</span>`:n.k==='c'&&ch(n.n).selo?`<span class="st"><img src="${BROOCH}" alt=""></span>`:'';
     const name=n.k==='f'?'Fase '+n.n:n.k==='c'?'Chefe: '+BOSS[n.n-1]:'Simulado final no Quintas';
     return `<button class="${cls}" style="${pc(n.x,n.y)}" data-act="sel" data-arg="${i}" aria-label="${name}${open?'':' (bloqueado)'}">${lab}${st}</button>`;}).join('');
   const cur=NODES[nx];
@@ -400,16 +398,14 @@ function scrPainel(){
 function scrOpcoes(msg){
   show(`<div class="box bow"><h2>Opções</h2>${msg?`<p class="soft">${esc(msg)}</p>`:''}
    <p>O progresso fica salvo neste navegador. Faça um backup de vez em quando para não perder nada.</p>
-   <p class="small">${S.bk?'Último backup: '+new Date(S.bk).toLocaleDateString('pt-BR')+'.':'Você ainda não fez nenhum backup.'}</p>
    <div class="row"><button class="btn" data-act="export">Exportar backup</button><button class="btn" data-act="import">Importar backup</button></div>
-   <h3>Tema de cores</h3><div class="row">${TEMAS.map(t=>`<button class="btn sm ${(S.tema||'rosa')===t[0]?'go':'soft2'}" data-act="tema" data-arg="${t[0]}" aria-pressed="${(S.tema||'rosa')===t[0]}">${t[1]}</button>`).join('')}</div>
    <div class="row"><button class="btn soft2" data-act="mute">${S.mute?'Ligar o som':'Desligar o som'}</button><button class="btn soft2" data-act="tutAgain">Ver o tutorial de novo</button></div>
    <div class="row"><button class="btn" data-act="reset">Apagar todo o progresso</button></div>
    <p class="small">Conteúdo: módulos, apostila e Banco Nacional de Questões do curso CNH do Brasil (Ministério dos Transportes / Senatran). Placas redesenhadas em vetor a partir do padrão oficial.</p></div>`);
 }
 function doExport(){const b=new Blob([JSON.stringify(S)],{type:'application/json'}),a=document.createElement('a');
   a.href=URL.createObjectURL(b);a.download='rumo-a-cnh-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();
-  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);S.bk=Date.now();save();scrOpcoes('Backup exportado. Guarde o arquivo em um lugar seguro.');}
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);scrOpcoes('Backup exportado. Guarde o arquivo em um lugar seguro.');}
 $('fileIn').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{try{const x=JSON.parse(rd.result);if(!x||x.v!==1||!x.qs)throw 0;S=Object.assign(blank(),x);save();scrOpcoes('Backup importado com sucesso.');}
     catch(err){scrOpcoes('Este arquivo não é um backup válido do Rumo à CNH.');}e.target.value='';};rd.readAsText(f);});
@@ -428,7 +424,7 @@ const ACT={
  reforco:()=>{SFX.page();scrReforco();},rfNext:a=>{SFX.page();scrReforco(+a);},rfGo:()=>startRun('reforco',RP.q),
  painel:()=>{SFX.page();scrPainel();},opcoes:()=>{SFX.page();scrOpcoes();},
  mute:()=>{S.mute=!S.mute;save();hud();const o=document.querySelector('.box h2');if(o&&o.textContent==='Opções')scrOpcoes();},
- tema:a=>{S.tema=a;save();SFX.click();scrOpcoes();},export:doExport,import:()=>$('fileIn').click(),
+ export:doExport,import:()=>$('fileIn').click(),
  reset:()=>overlay(`<div class="box"><h2>Apagar tudo?</h2><p>Isso apaga corações, broches, estatísticas e o caderno de erros deste navegador.</p>
    <div class="row"><button class="btn" data-act="closeOv">Cancelar</button><button class="btn go" data-act="resetYes">Apagar</button></div></div>`),
  resetYes:()=>{S=blank();save();closeOv();scrTitle();},closeOv:closeOv,

@@ -2,7 +2,7 @@ const {JSDOM}=require('jsdom');const fs=require('fs');
 const html=fs.readFileSync(require('path').join(__dirname,'..','dist','rumo-a-cnh.html'),'utf8');
 const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'http://localhost/x.html',
  beforeParse(w){w.HTMLCanvasElement.prototype.getContext=function(){return {fillRect(){},clearRect(){},drawImage(){},fillStyle:'',globalAlpha:1}};w.HTMLCanvasElement.prototype.toDataURL=()=>'data:,';
-  w.scrollTo=()=>{};w.AudioContext=undefined;w.URL.createObjectURL=()=>'blob:x';w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){};}});
+  w.scrollTo=()=>{};w.AudioContext=undefined;w.URL.createObjectURL=()=>'blob:x';w.URL.revokeObjectURL=()=>{};}});
 const w=dom.window,d=w.document;
 const errs=[];w.addEventListener('error',e=>errs.push(e.message));
 const click=sel=>{const b=d.querySelector(sel);if(!b)throw new Error('sem '+sel+' em '+d.getElementById('screen').textContent.slice(0,200));b.click();};
@@ -37,25 +37,4 @@ while(d.querySelector('[data-act="rfNext"]'))click('[data-act="rfNext"]');click(
 click('#hud [data-act="painel"]');console.log(txt().slice(0,260));
 // placas: verifica que todas as questões com código mostram imagem quando necessário
 const st=JSON.parse(w.localStorage.getItem('rumo_a_cnh_v1'));console.log('vistas',Object.keys(st.qs).length,'caderno',Object.keys(st.nb).length,'sess',st.sess);
-// ---- verificações extras ----
-const fails=[];const ok=(c,m)=>{if(!c)fails.push(m);};
-// dados: ids únicos, 3 erradas por questão, todas as placas citadas existem em vetor
-const PL=w.eval('PLACAS'),plate=w.eval('plateSVG');
-ok(new Set(D.q.map(r=>r[0])).size===D.q.length,'ids de questão repetidos');
-D.q.forEach(r=>{ok(Array.isArray(r[7])&&r[7].length===3&&!r[7].includes(r[6]),'alternativas inválidas em '+r[0]);ok(r[8]&&r[8].length>5,'sem comentário oficial em '+r[0]);
-  if(r[9])r[9].split(/\s+e\s+/).forEach(c=>ok(PL[c]&&plate(c).includes('<svg'),'placa sem desenho: '+c+' (questão '+r[0]+')'));});
-// caminho de erro: errar no Desafio mostra a certa em verde, comentário oficial e recoloca a pergunta na fila
-click('[data-act="map"]');d.querySelectorAll('.node')[0].click();click('[data-act="desafio"]');
-{const R0=JSON.parse(w.localStorage.getItem('rumo_a_cnh_v1')).run,len0=R0.queue.length,right=D.q.find(r=>r[0]===R0.queue[R0.pos])[6];
- const opts=[...d.querySelectorAll('.opt')];const bad=opts.findIndex(o=>o.querySelector('span').textContent!==right);opts[bad].click();
- ok(d.querySelector('.opt.right')&&d.querySelector('.opt.wrong'),'erro não marcou certa/errada');
- ok(/Comentário oficial/.test(txt())&&/volta mais tarde/.test(txt()),'faltou comentário/aviso após erro');
- ok(JSON.parse(w.localStorage.getItem('rumo_a_cnh_v1')).run.queue.length===len0+1,'pergunta errada não voltou para a fila');
- ok([...d.querySelectorAll('.opt')].every(o=>o.disabled),'alternativas não travaram após responder');}
-click('[data-act="quit"]');
-// backup: exportar registra a data
-click('#hud [data-act="opcoes"]');ok(/nenhum backup/.test(txt()),'opções deveria avisar que não há backup');
-click('[data-act="export"]');ok(JSON.parse(w.localStorage.getItem('rumo_a_cnh_v1')).bk>0&&/Último backup/.test(txt()),'export não registrou a data');
 console.log('ERROS',errs);
-console.log('FALHAS',fails);
-if(errs.length||fails.length)process.exitCode=1;

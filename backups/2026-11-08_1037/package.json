@@ -1,0 +1,13 @@
+{
+  "name": "rumo-a-cnh",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/run-build.js",
+    "test": "node tests/test.js",
+    "check": "node scripts/run-build.js && node tests/test.js",
+    "backup": "node scripts/backup.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

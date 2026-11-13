@@ -11,8 +11,13 @@ for o in B:
     t=A[o['id']]; n=norm(o['q'])
     if t=='alcool' and 'sono' in n: A[o['id']]='sono'
     if t=='hab_proc' and re.search(r'\bppd\b|permissao para dirigir',n): A[o['id']]='ppd'
+# Categoria B: questões de pilotar moto ficam fora (lista reversível em data/excluidas_moto.json)
+EXC=set(json.load(open('data/excluidas_moto.json')))
+B=[o for o in B if o['id'] not in EXC]
+A['1-3-375']='ciclistas_motos'; A['2-3-24']='posicao'
+cnt=collections.Counter(A[o['id']] for o in B)
+T=[t for t in T if cnt[t[0]]>0]
 ids=[t[0] for t in T]; TI={t:i for i,t in enumerate(ids)}
-cnt=collections.Counter(A.values())
 saiba=json.load(open('data/saiba.json'))
 VIS={
 'sin_tipos':[None,'P:R-1','I:lin-continua','I:sem-verde','I:ciclofaixa','I:cone','I:temporaria'],
@@ -79,7 +84,7 @@ codes=sorted({c for o in B if 's' in o for c in re.split(r'\s+e\s+',o['s'])})
 print('codes',len(codes))
 # cobertura.md
 L=['# Cobertura do conteúdo — Rumo à CNH','',
- 'Todas as 1.500 questões do Banco estão associadas a exatamente um tópico. Onde aparecem: **Fase** (Estudo + Desafio da Jornada, com uma seleção da Parte 1), **Reforço** (todas as questões do tópico, depois que a fase é estudada), **Chefe** (Parte 2 do módulo) e **Simulado final** no Quintas (sorteio entre todas).','']
+ f'Todas as {len(B)} questões do Banco usadas no jogo (1.500 menos {len(EXC)} sobre pilotar moto, fora por ser categoria B) estão associadas a exatamente um tópico. Onde aparecem: **Fase** (Estudo + Desafio da Jornada, com uma seleção da Parte 1), **Reforço** (todas as questões do tópico, depois que a fase é estudada), **Chefe** (Parte 2 do módulo) e **Simulado final** no Quintas (sorteio entre todas).','']
 for a in aulas:
     L.append(f"## Fase {a['n']} — {a['nome']} (Módulo {a['m']}: {mods[a['m']-1]['nome']})"); L.append('')
     L.append('| Tópico | Questões do Banco | Na Jornada | Parte 2 (chefe) |'); L.append('|---|---:|---:|---:|'); tot=0
